@@ -1,0 +1,1 @@
+Este repositório contém códigos, exemplos e experimentos realizados na disciplina de Laboratório de Programação Paralela. O foco é explorar conceitos de computação paralela utilizando MPI (Message Passing Interface), OpenMP, e outras ferramentas.
