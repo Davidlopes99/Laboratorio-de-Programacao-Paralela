@@ -23,7 +23,9 @@ MPI_Status estado;
         for (origem = 1; origem < num_procs; origem++) {
             MPI_Recv(mensagem, 200, MPI_CHAR, origem, etiq, MPI_COMM_WORLD, &estado);
     /* Imprime as mensagens recebidas */
-            printf("%s\n",mensagem); 
+        printf("%s\n",mensagem);     
+        printf("%d\n", estado.MPI_SOURCE);
+
         }
     } 
     MPI_Finalize();
