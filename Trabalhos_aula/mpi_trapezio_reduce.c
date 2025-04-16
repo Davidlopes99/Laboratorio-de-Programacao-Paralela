@@ -35,18 +35,8 @@ int etiq = 3;               /* Uma etiqueta qualquer */
     }
     integral = integral*h;
     /* O processo 0 soma as integrais parciais recebidas */
-    if (meu_ranque == 0) { 
-        total = integral; 
-        for (origem = 1; origem < num_procs; origem++) { 
-             MPI_Recv(&integral, 1, MPI_DOUBLE, origem, etiq, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-             total += integral; 
-        }
-    } 
-     /* Os demais processos enviam as integrais parciais para o processo 0 */
-    else {
-    MPI_Reduce(&integral, &total, 1, MPI_DOUBLE,
-    MPI_SUM, 0, MPI_COMM_WORLD);
-    }
+    MPI_Reduce(&integral, &total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
     /* Imprime o resultado */
     if (meu_ranque == 0) {
         tempo_final = MPI_Wtime();
