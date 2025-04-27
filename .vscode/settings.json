@@ -1,5 +1,6 @@
 {
-    "files.associations": {
-        "MPI_SIMPLES.C": "c"
-    }
+  "files.associations": {
+    "MPI_SIMPLES.C": "c",
+    "mpi_multiplicacao_de_matrizes": "c"
+  }
 }
