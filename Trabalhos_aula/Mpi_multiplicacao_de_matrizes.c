@@ -2,133 +2,94 @@
 #include <stdlib.h>
 #include "mpi.h"
 
-#define N 5 // Você pode mudar o tamanho da matriz aqui
+#define N 5
 
 int main(int argc, char *argv[]) {
-    int meu_ranque, num_procs;
-    int i, j, k;
-    int *A = NULL, *B = NULL, *C = NULL;
-    int *A_local = NULL, *C_local = NULL;
-    int linhas_local;
+    int meu_ranque, num_procs, i, j, k;
+    int *A = NULL, *B = NULL, *C = NULL, *A_local, *C_local;
     int *sendcounts = NULL, *displs = NULL;
-    int *recvcounts = NULL, *rdispls = NULL;
+    int linhas_local, base, resto, desloc;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &meu_ranque);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-    MPI_Comm com = MPI_COMM_WORLD;
-    int raiz = 0;
+    base = N / num_procs;
+    resto = N % num_procs;
+    linhas_local = (meu_ranque < resto) ? base + 1 : base;
 
-    // Cálculo do número de linhas para cada processo
-    int base = N / num_procs;
-    int resto = N % num_procs;
+    A_local = malloc(linhas_local * N * sizeof(int));
+    C_local = malloc(linhas_local * N * sizeof(int));
+    B = malloc(N * N * sizeof(int));
 
-    if (meu_ranque < resto)
-        linhas_local = base + 1;
-    else
-        linhas_local = base;
-
-    // Aloca espaço para B e para partes locais de A e C
-    A_local = (int *)malloc(linhas_local * N * sizeof(int));
-    C_local = (int *)malloc(linhas_local * N * sizeof(int));
-    B = (int *)malloc(N * N * sizeof(int));
-
-    if (meu_ranque == raiz) {
-        A = (int *)malloc(N * N * sizeof(int));
-        C = (int *)malloc(N * N * sizeof(int));
-
-        // Inicializa matriz A
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < N; j++) {
-                A[i*N + j] = i + j; // Exemplo: A[i][j] = i + j
-            }
-        }
-
-        // Inicializa matriz B
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < N; j++) {
-                B[i*N + j] = i * j; // Exemplo: B[i][j] = i * j
-            }
-        }
-
-        // Imprime as matrizes A e B
-        printf("Matriz A:\n");
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < N; j++) {
-                printf("%4d ", A[i*N + j]);
-            }
-            printf("\n");
-        }
-        printf("\nMatriz B:\n");
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < N; j++) {
-                printf("%4d ", B[i*N + j]);
-            }
-            printf("\n");
-        }
-        printf("\n");
+    if (meu_ranque == 0) {
+        A = malloc(N * N * sizeof(int));
+        C = malloc(N * N * sizeof(int));
+        sendcounts = malloc(num_procs * sizeof(int));
+        displs = malloc(num_procs * sizeof(int));
         
-        // Prepara sendcounts e displacements para Scatterv
-        sendcounts = (int *)malloc(num_procs * sizeof(int));
-        displs = (int *)malloc(num_procs * sizeof(int));
-        recvcounts = (int *)malloc(num_procs * sizeof(int));
-        rdispls = (int *)malloc(num_procs * sizeof(int));
+        int A_input[N][N] = {
+            {1, 2, 3, 4, 5},
+            {5, 4, 3, 2, 1},
+            {1, 1, 1, 1, 1},
+            {2, 3, 4, 5, 6},
+            {6, 5, 4, 3, 2}
+        };
 
-        int desloc = 0;
-        for (i = 0; i < num_procs; i++) {
+        int B_input[N][N] = {
+            {1, 0, 0, 0, 0},
+            {0, 1, 0, 0, 0},
+            {0, 0, 1, 0, 0},
+            {0, 0, 0, 1, 0},
+            {0, 0, 0, 0, 1}
+        };
+
+        for (i = 0; i < N; i++)
+            for (j = 0; j < N; j++) {
+                A[i*N+j] = A_input[i][j];
+                B[i*N+j] = B_input[i][j];
+            }
+
+        printf("Matriz A:\n");
+        for (i = 0; i < N; i++, printf("\n"))
+            for (j = 0; j < N; j++)
+                printf("%4d ", A[i*N+j]);
+
+        printf("\nMatriz B:\n");
+        for (i = 0; i < N; i++, printf("\n"))
+            for (j = 0; j < N; j++)
+                printf("%4d ", B[i*N+j]);
+
+        for (i = 0, desloc = 0; i < num_procs; i++) {
             int linhas = (i < resto) ? base + 1 : base;
             sendcounts[i] = linhas * N;
             displs[i] = desloc;
-            recvcounts[i] = linhas * N;
-            rdispls[i] = desloc;
             desloc += linhas * N;
         }
     }
 
-    // Espalha A
-    MPI_Scatterv(A, sendcounts, displs, MPI_INT,
-                 A_local, linhas_local*N, MPI_INT, raiz, com);
+    MPI_Scatterv(A, sendcounts, displs, MPI_INT, A_local, linhas_local*N, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(B, N*N, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Todos os processos recebem B
-    MPI_Bcast(B, N*N, MPI_INT, raiz, com);
-
-    // Cada processo calcula sua parte de C
-    for (i = 0; i < linhas_local; i++) {
+    for (i = 0; i < linhas_local; i++)
         for (j = 0; j < N; j++) {
-            C_local[i*N + j] = 0;
-            for (k = 0; k < N; k++) {
-                C_local[i*N + j] += A_local[i*N + k] * B[k*N + j];
-            }
+            C_local[i*N+j] = 0;
+            for (k = 0; k < N; k++)
+                C_local[i*N+j] += A_local[i*N+k] * B[k*N+j];
         }
+
+    MPI_Gatherv(C_local, linhas_local*N, MPI_INT, C, sendcounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (meu_ranque == 0) {
+        printf("\nMatriz Resultado C = A x B:\n");
+        for (i = 0; i < N; i++, printf("\n"))
+            for (j = 0; j < N; j++)
+                printf("%4d ", C[i*N+j]);
     }
 
-    // Reúne C
-    MPI_Gatherv(C_local, linhas_local*N, MPI_INT,
-                C, recvcounts, rdispls, MPI_INT, raiz, com);
-
-    // Processo raiz imprime o resultado
-    if (meu_ranque == raiz) {
-        printf("Matriz Resultado C = A x B:\n");
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < N; j++) {
-                printf("%4d ", C[i*N + j]);
-            }
-            printf("\n");
-        }
-    }
-
-    // Libera memória
-    free(A_local);
-    free(B);
-    free(C_local);
-    if (meu_ranque == raiz) {
-        free(A);
-        free(C);
-        free(sendcounts);
-        free(displs);
-        free(recvcounts);
-        free(rdispls);
+    free(A_local); free(B); free(C_local);
+    if (meu_ranque == 0) {
+        free(A); free(C); free(sendcounts); free(displs);
     }
 
     MPI_Finalize();
