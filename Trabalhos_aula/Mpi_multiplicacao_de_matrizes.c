@@ -95,3 +95,7 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
     return 0;
 }
+
+//cd ~/lab-paralela
+//mpicc Mpi_multiplicacao_de_matrizes.c -o matriz_mpi
+//mpiexec -n 4 ./matriz_mpi
