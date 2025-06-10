@@ -1,6 +1,7 @@
 {
   "files.associations": {
     "MPI_SIMPLES.C": "c",
-    "mpi_multiplicacao_de_matrizes": "c"
+    "mpi_multiplicacao_de_matrizes": "c",
+    "string.h": "c"
   }
 }
