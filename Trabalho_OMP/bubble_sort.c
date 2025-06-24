@@ -77,7 +77,7 @@ int main() {
         printf("Sequencial: %.4f segundos\n", end - start);
         free(seq);
 
-        // Paralelo 2 threads
+        //2 threads
         int *par2 = copyArray(array, n);
         start = omp_get_wtime();
         bubbleSortParallel(par2, n, 2);
@@ -85,7 +85,7 @@ int main() {
         printf("Paralelo 2 threads: %.4f segundos\n", end - start);
         free(par2);
 
-        // Paralelo 4 threads
+        //4 threads
         int *par4 = copyArray(array, n);
         start = omp_get_wtime();
         bubbleSortParallel(par4, n, 4);
