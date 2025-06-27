@@ -1,34 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <time.h>
 #include <omp.h>
+#include <time.h>
 
 int main(int argc, char **argv) {
-    int N;
-    long int i;
-    double dot = 0.0;
-
-    /* O número de elementos é o primeiro parâmetro de entrada */
-    if (argc < 2) {
-        printf("Uso: %s <N>\n", argv[0]);
+    if (argc < 3) {
+        printf("Uso: %s <num_threads> <tamanho_N>\n", argv[0]);
         return 1;
     }
-    N = atoi(argv[1]);
 
-    int* a = (int*) malloc(sizeof(int) * N);
-    int* b = (int*) malloc(sizeof(int) * N);
+    int nthreads = atoi(argv[1]);
+    int N = atoi(argv[2]);
+    double dot = 0.0;
+    long int i;
 
-    /* Inicializando os vetores */
+    int *a = (int *) malloc(sizeof(int) * N);
+    int *b = (int *) malloc(sizeof(int) * N);
+
     for (i = 0; i < N; i++) {
         a[i] = 2;
         b[i] = 5;
     }
 
+    omp_set_num_threads(nthreads);
     clock_t start, end;
     start = clock();
 
-    /* Multiplicação - Produto interno com parallel for simd */
+    // Parallel For + SIMD com redução
     #pragma omp parallel for simd reduction(+:dot)
     for (i = 0; i < N; i++) {
         dot += a[i] * b[i];
@@ -37,10 +35,9 @@ int main(int argc, char **argv) {
     end = clock();
     double time_taken = (double)(end - start) / CLOCKS_PER_SEC;
 
-    free(a);
-    free(b);
-
     printf("Resultado: dot = %9.3f com tempo de %f segundos\n", dot, time_taken);
 
+    free(a);
+    free(b);
     return 0;
 }
